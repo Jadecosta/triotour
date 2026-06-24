@@ -1,0 +1,49 @@
+{% extends 'base_public.html' %}
+{% block content %}
+<main>
+  <section class="public-hero">
+    <div>
+      <span class="badge">Triotour viagens</span>
+      <h1>Pacotes e promoções para viajar melhor</h1>
+      <p>{{ cfg.slogan if cfg and cfg.slogan else 'Sua proxima viagem com atendimento humano, roteiro claro e suporte de ponta a ponta.' }}</p>
+      <a class="btn primary" href="{{ url_for('promocoes_publicas') }}">Ver promoções</a>
+    </div>
+  </section>
+
+  <section class="public-section home-promos" id="promocoes">
+    <div class="public-section-head">
+      <div>
+        <span class="badge">Pacotes em promoção</span>
+        <h2>Viagens em destaque</h2>
+      </div>
+      <a class="btn" href="{{ url_for('promocoes_publicas') }}">Todas as promocoes</a>
+    </div>
+    <div class="packages-grid promotions-list">
+      {% for p in destaques %}
+      {% include 'partials/promo_card.html' %}
+      {% else %}
+      <article class="empty-public">Nenhuma promocao publicada no momento.</article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if outras %}
+  <section class="public-section home-promos">
+    <div class="public-section-head">
+      <h2>Outras promocoes</h2>
+    </div>
+    <div class="packages-grid promotions-list">
+      {% for p in outras %}
+      {% include 'partials/promo_card.html' %}
+      {% endfor %}
+    </div>
+  </section>
+
+  {% endif %}
+
+  <section class="public-about" id="sobre">
+    <h2>Sobre a Triotour</h2>
+    <p>A Triotour organiza cotações, pacotes e viagens com informacoes transparentes para voce escolher com seguranca.</p>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base_public.html' %}
+{% block content %}
+<main class="public-section detail-page">
+  <section class="promo-detail">
+    <div class="promo-gallery">
+      {% if imagens %}
+        {% for img in imagens %}
+        <img src="{{ url_for('static', filename='uploads/promocoes/' ~ img.arquivo) }}" alt="{{ img.nome_original or promo.titulo }}">
+        {% endfor %}
+      {% else %}
+        <img src="{{ url_for('static', filename='img/logo_triotour.png') }}" alt="{{ promo.titulo }}">
+      {% endif %}
+    </div>
+    <article class="promo-detail-content">
+      <span class="badge">{{ promo.destino }}</span>
+      <h1>{{ promo.titulo }}</h1>
+      {% if promo.descricao_completa %}<p class="pre">{{ promo.descricao_completa }}</p>{% elif promo.descricao_curta %}<p>{{ promo.descricao_curta }}</p>{% endif %}
+      <div class="detail-price">
+        {% if promo.preco_original %}<del>{{ promo.preco_original|money }}</del>{% endif %}
+        <strong>{{ promo.texto_preco or ((promo.preco_promocional or promo.preco_original)|money ~ ' por ' ~ (promo.preco_por or 'pessoa')) }}</strong>
+        {% if promo.parcelas and promo.valor_parcela %}<span>{{ promo.parcelas }}x de {{ promo.valor_parcela|money }}</span>{% endif %}
+      </div>
+      <a class="btn primary" href="{{ whatsapp_link(promo, cfg) }}" target="_blank" rel="noopener">{{ promo.texto_botao or 'Falar pelo WhatsApp' }}</a>
+    </article>
+  </section>
+
+  <section class="detail-grid">
+    <article class="card"><h2>Dados da viagem</h2><p>{{ promo.origem or 'Origem a consultar' }} para {{ promo.destino }}</p><p>{{ promo.data_inicio|br_date }}{% if promo.data_fim %} a {{ promo.data_fim|br_date }}{% endif %}</p><p>{{ promo.dias or 0 }} dias / {{ promo.noites or 0 }} noites</p>{% if promo.vagas %}<p>{{ promo.vagas }} vagas disponiveis</p>{% endif %}{% if promo.validade %}<p>Validade: {{ promo.validade|br_date }}</p>{% endif %}</article>
+    <article class="card"><h2>Hospedagem e transporte</h2>{% if promo.hospedagem %}<p>{{ promo.hospedagem }}</p>{% endif %}{% if promo.transportadora or promo.tipo_transporte %}<p>{{ promo.tipo_transporte }} {{ promo.transportadora }}</p>{% endif %}{% if promo.horarios %}<p>{{ promo.horarios }}</p>{% endif %}{% if promo.ponto_embarque %}<p>{{ promo.ponto_embarque }}</p>{% endif %}</article>
+    {% if inclusos %}<article class="card"><h2>O que esta incluso</h2><ul>{% for item in inclusos %}<li>{{ item.nome }}</li>{% endfor %}</ul></article>{% endif %}
+    {% if nao_inclusos %}<article class="card"><h2>O que nao esta incluso</h2><ul>{% for item in nao_inclusos %}<li>{{ item.nome }}</li>{% endfor %}</ul></article>{% endif %}
+    <article class="card"><h2>Informacoes</h2>{% for value in [promo.bagagem, promo.documentacao, promo.politica_criancas, promo.politica_cancelamento, promo.observacoes, promo.termos] if value %}<p class="pre">{{ value }}</p>{% endfor %}{% if promo.link_externo %}<a href="{{ promo.link_externo }}" target="_blank" rel="noopener">Link externo</a>{% endif %}</article>
+  </section>
+</main>
+{% endblock %}

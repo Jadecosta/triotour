@@ -1,1 +1,184 @@
-{% extends 'base.html' %}{% block content %}<h1>{{ 'Nova Cotação' if tipo=='cotacao' else 'Novo Pacote' }}</h1><form class="card form" method="post" id="proposalForm"><div class="cols"><label>Cliente*<select required name="cliente_id"><option value="">Selecione</option>{% for c in clientes %}<option value="{{c.id}}" {% if proposta and proposta.cliente_id==c.id %}selected{% endif %}>{{c.nome}}</option>{% endfor %}</select></label><label>Status<select name="status">{% for s in ['rascunho','enviada','aprovada','cancelada'] %}<option {% if proposta and proposta.status==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select></label></div><div class="cols"><input name="titulo" placeholder="Título da proposta" value="{{ proposta.titulo if proposta else '' }}"><input name="subtipo" required placeholder="{{ 'Tipo: passagem aérea ou rodoviária' if tipo=='cotacao' else 'Tipo: aéreo, rodoviário ou misto' }}" value="{{ proposta.subtipo if proposta else '' }}"></div><div class="cols"><input required name="origem" placeholder="Origem" value="{{ proposta.origem if proposta else '' }}"><input required name="destino" placeholder="Destino principal" value="{{ proposta.destino if proposta else '' }}"></div><div class="cols"><label>Data início*<input required type="date" name="data_inicio" value="{{ proposta.data_inicio if proposta else '' }}"></label><label>Data fim/volta<input type="date" name="data_fim" value="{{ proposta.data_fim if proposta else '' }}"></label><input name="dias_noites" placeholder="Quantidade de dias e noites" value="{{ proposta.dias_noites if proposta else '' }}"></div><h2>Transporte de ida e volta</h2>{% for tr in ['ida','volta'] %}{% set t = proposta.transportes.get(tr) if proposta else none %}<div class="cols"><label>{{tr|capitalize}} data<input type="date" name="{{tr}}_data" value="{{ t.data if t else '' }}"></label><input type="time" name="{{tr}}_horario" value="{{ t.horario if t else '' }}"><input name="{{tr}}_companhia" placeholder="Companhia/empresa {{tr}}" value="{{ t.companhia if t else '' }}"><input name="{{tr}}_identificacao" placeholder="Nº voo ou identificação" value="{{ t.identificacao if t else '' }}"></div>{% endfor %}<textarea name="bagagem" placeholder="Bagagem inclusa/informações de bagagem">{{ proposta.bagagem if proposta else '' }}</textarea>{% if tipo=='pacote' %}<h2>Hospedagem</h2>{% set h = proposta.hospedagem if proposta else none %}<div class="cols"><input name="hospedagem_nome" placeholder="Nome da hospedagem" value="{{ h.nome if h else '' }}"><label>Check-in<input type="date" name="checkin" value="{{ h.checkin if h else '' }}"></label><label>Check-out<input type="date" name="checkout" value="{{ h.checkout if h else '' }}"></label></div><div class="cols"><select name="quarto"><option value="">Tipo de quarto</option>{% for q in ['individual','duplo','triplo','família','outro'] %}<option {% if h and h.quarto==q %}selected{% endif %}>{{q}}</option>{% endfor %}</select><select name="alimentacao"><option value="">Regime de alimentação</option>{% for a in ['sem refeição','café da manhã','meia pensão','pensão completa','all inclusive'] %}<option {% if h and h.alimentacao==a %}selected{% endif %}>{{a}}</option>{% endfor %}</select></div><h2>Roteiro por dia</h2><div id="days"></div><button type="button" onclick="addDay()">Adicionar dia</button><input type="hidden" name="roteiro_json" id="roteiro_json">{% endif %}<h2>Itens inclusos</h2><div class="checks">{% set chosen = proposta.itens|map(attribute='nome')|list if proposta else [] %}{% for item in default_items %}<label><input type="checkbox" name="itens" value="{{item}}" {% if item in chosen %}checked{% endif %}> {{item}}</label>{% endfor %}</div><input name="itens_custom" placeholder="Outros itens inclusos separados por vírgula"><textarea name="nao_inclusos" placeholder="O que não está incluso, se houver">{{ proposta.nao_inclusos if proposta else '' }}</textarea><h2>Valores e termos</h2><div class="cols"><input required type="number" step="0.01" name="valor_total" placeholder="Valor total" value="{{ proposta.valor_total if proposta else '' }}"><input type="number" step="0.01" name="valor_parcelado" placeholder="Valor parcelado" value="{{ proposta.valor_parcelado if proposta else '' }}"><input type="number" name="parcelas" placeholder="Quantidade de parcelas" value="{{ proposta.parcelas if proposta else '1' }}"></div><textarea rows="7" name="termos" placeholder="Termos e condições">{{ proposta.termos if proposta else cfg.termos_padrao }}</textarea><button class="primary">Salvar rascunho/proposta</button></form><script>window.initialDays={{ (proposta.roteiro_json if proposta else [])|tojson }};</script><script src="{{ url_for('static', filename='app.js') }}"></script>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+{% set pass = proposta.passageiros if proposta and proposta.passageiros else {'adultos': 1, 'criancas': 0, 'bebes': 0, 'idades_criancas': '', 'idades_bebes': ''} %}
+{% set h = proposta.hospedagem if proposta and proposta.hospedagem else none %}
+{% set chosen = proposta.itens|map(attribute='nome')|list if proposta else [] %}
+<h1>{{ 'Nova Cotação' if tipo=='cotacao' else 'Novo Pacote' }}</h1>
+
+<form class="form proposal-form" method="post" id="proposalForm" novalidate>
+  <section class="card form-section">
+    <h2>Dados do cliente e da viagem</h2>
+    <div class="cols">
+      <label>Cliente*<select required name="cliente_id">
+        <option value="">Selecione</option>
+        {% for c in clientes %}
+        <option value="{{c.id}}" {% if proposta and proposta.cliente_id==c.id %}selected{% endif %}>{{c.nome}}</option>
+        {% endfor %}
+      </select></label>
+      <label>Status<select name="status">
+        {% for s in ['rascunho','enviada','aprovada','cancelada'] %}
+        <option value="{{s}}" {% if proposta and proposta.status==s %}selected{% endif %}>{{s}}</option>
+        {% endfor %}
+      </select></label>
+    </div>
+    <div class="cols">
+      <label>Título<input name="titulo" placeholder="Título da proposta" value="{{ proposta.titulo if proposta else '' }}"></label>
+      <label>Tipo da viagem*<input name="subtipo" required placeholder="{{ 'Passagem aérea, rodoviária ou mista' if tipo=='cotacao' else 'Aéreo, rodoviário ou misto' }}" value="{{ proposta.subtipo if proposta else '' }}"></label>
+    </div>
+    <div class="cols">
+      <label>Origem*<input required name="origem" placeholder="Origem" value="{{ proposta.origem if proposta else '' }}"></label>
+      <label>Destino principal*<input required name="destino" placeholder="Destino principal" value="{{ proposta.destino if proposta else '' }}"></label>
+    </div>
+    <div class="cols">
+      <label>Data início*<input required type="date" name="data_inicio" value="{{ proposta.data_inicio if proposta else '' }}"></label>
+      <label>Data fim/volta<input type="date" name="data_fim" value="{{ proposta.data_fim if proposta else '' }}"></label>
+      <label>Dias e noites<input name="dias_noites" placeholder="Quantidade de dias e noites" value="{{ proposta.dias_noites if proposta else '' }}"></label>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <h2>Passageiros</h2>
+    <div class="cols">
+      <label>Adultos<input min="0" type="number" name="adultos" id="adultos" value="{{ pass.adultos|default(1) }}"></label>
+      <label>Crianças<input min="0" type="number" name="criancas" id="criancas" value="{{ pass.criancas|default(0) }}"></label>
+      <label>Bebês<input min="0" type="number" name="bebes" id="bebes" value="{{ pass.bebes|default(0) }}"></label>
+      <label>Total de passageiros<input readonly id="total_passageiros" value="0"></label>
+    </div>
+    <div class="cols">
+      <label>Idades das crianças<input name="idades_criancas" placeholder="Ex.: 4, 8" value="{{ pass.idades_criancas|default('') }}"></label>
+      <label>Idades dos bebês<input name="idades_bebes" placeholder="Ex.: 1 ano, 8 meses" value="{{ pass.idades_bebes|default('') }}"></label>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <label class="switch-option">
+      <input type="checkbox" id="inclui_passagens" name="inclui_passagens" value="1" {% if proposta and proposta.inclui_passagens %}checked{% endif %}>
+      <span class="switch-control" aria-hidden="true"></span>
+      <span>Esta cotação inclui passagens</span>
+    </label>
+    <div class="collapsible" id="passagens_section">
+      <div class="section-heading">
+        <h2>Passagens/transportes</h2>
+        <button class="primary add-btn" type="button" id="addTransport">+ Adicionar trecho</button>
+      </div>
+      <div id="transportesWrap" class="dynamic-list"></div>
+      <input type="hidden" name="transportes_json" id="transportes_json">
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <label class="switch-option">
+      <input type="checkbox" id="inclui_hospedagem" name="inclui_hospedagem" value="1" {% if proposta and proposta.inclui_hospedagem %}checked{% endif %}>
+      <span class="switch-control" aria-hidden="true"></span>
+      <span>Esta cotação inclui hospedagem</span>
+    </label>
+    <div class="collapsible" id="hospedagem_section">
+      <h2>Hospedagem</h2>
+      <div class="cols">
+        <label>Cidade da hospedagem*<input name="hosp_cidade" value="{{ h.cidade if h else '' }}"></label>
+        <label>Nome do hotel*<input name="hospedagem_nome" value="{{ h.nome if h else '' }}"></label>
+      </div>
+      <div class="cols">
+        <label>Check-in*<input type="date" name="checkin" id="checkin" value="{{ h.checkin if h else '' }}"></label>
+        <label>Check-out*<input type="date" name="checkout" id="checkout" value="{{ h.checkout if h else '' }}"></label>
+        <label>Diárias<input readonly id="diarias" value="{{ h.diarias if h else 0 }}"></label>
+      </div>
+      <div class="cols">
+        <label>Tipo de acomodação<select name="tipo_acomodacao" id="tipo_acomodacao">
+          <option value="">Selecione</option>
+          {% for q in ['Quarto individual','Quarto duplo','Quarto triplo','Quarto quádruplo','Quarto família','Standard','Superior','Deluxe','Luxo','Suíte','Suíte executiva','Suíte presidencial','Apartamento','Bangalô','Chalé','Villa','Hostel compartilhado','Outro'] %}
+          <option value="{{q}}" {% if h and h.tipo_acomodacao==q %}selected{% endif %}>{{q}}</option>
+          {% endfor %}
+        </select></label>
+        <label class="other-accommodation">Outra acomodação<input name="acomodacao_personalizada" value="{{ h.acomodacao_personalizada if h else '' }}"></label>
+      </div>
+      <div class="cols">
+        <label>Quartos<input min="0" type="number" name="quartos" value="{{ h.quartos if h else 0 }}"></label>
+        <label>Total de camas<input min="0" type="number" name="camas" value="{{ h.camas if h else 0 }}"></label>
+        <label>Pessoas<input min="0" type="number" name="pessoas" value="{{ h.pessoas if h else 0 }}"></label>
+      </div>
+      <div class="mini-panel">
+        <div class="section-heading">
+          <h3>Tipos de camas</h3>
+          <button type="button" id="addBed">Adicionar cama</button>
+        </div>
+        <div id="bedsWrap" class="dynamic-list compact"></div>
+        <input type="hidden" name="camas_json" id="camas_json">
+      </div>
+      <div class="mini-panel">
+        <h3>Itens inclusos na hospedagem</h3>
+        <div class="checks" id="hotelItems">
+          {% for item in ['Café da manhã','Meia pensão','Pensão completa','All inclusive','Wi-Fi','Estacionamento','Piscina','Academia','Traslado','Limpeza diária','Ar-condicionado','Roupa de cama','Toalhas','Serviço de quarto','Taxas','Outros'] %}
+          <label class="checkbox-option">
+            <input type="checkbox" value="{{item}}" {% if h and item in h.itens_inclusos %}checked{% endif %}>
+            <span class="checkbox-box" aria-hidden="true"></span>
+            <span class="checkbox-label">{{item}}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <label class="hotel-items-other">Detalhes de outros itens<input name="hosp_itens_outros" value="{{ h.itens_outros if h else '' }}"></label>
+        <input type="hidden" name="hospedagem_itens_json" id="hospedagem_itens_json">
+      </div>
+      <div class="cols">
+        <label>Nota da hospedagem<input type="text" inputmode="decimal" name="nota" placeholder="8,5" value="{{ h.nota if h and h.nota is not none else '' }}"></label>
+        <label>Estrelas<select name="estrelas">
+          <option value="">Selecione</option>
+          {% for n in [1,2,3,4,5] %}
+          <option value="{{n}}" {% if h and h.estrelas==n %}selected{% endif %}>{{n}} estrela{{'s' if n>1 else ''}}</option>
+          {% endfor %}
+        </select></label>
+      </div>
+      <div class="cols">
+        <label>Localização/endereço<input name="localizacao" value="{{ h.localizacao if h else '' }}"></label>
+        <label>Link Google Maps<input type="url" name="mapa_link" value="{{ h.mapa_link if h else '' }}"></label>
+      </div>
+      <div class="cols">
+        <label>Valor total da hospedagem<input min="0" step="0.01" type="number" name="hosp_valor_total" id="hosp_valor_total" value="{{ h.valor_total if h else 0 }}"></label>
+        <label>Parcelas<input min="1" type="number" name="hosp_parcelas" id="hosp_parcelas" value="{{ h.parcelas if h else 1 }}"></label>
+        <label>Valor da parcela<input min="0" step="0.01" type="number" name="hosp_valor_parcelado" id="hosp_valor_parcelado" value="{{ h.valor_parcelado if h else 0 }}"></label>
+      </div>
+      <textarea name="hosp_observacoes" placeholder="Observações da hospedagem">{{ h.observacoes if h else '' }}</textarea>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <h2>Itens inclusos e não inclusos</h2>
+    <div class="checks">
+      {% for item in default_items %}
+      <label class="checkbox-option">
+        <input type="checkbox" name="itens" value="{{item}}" {% if item in chosen %}checked{% endif %}>
+        <span class="checkbox-box" aria-hidden="true"></span>
+        <span class="checkbox-label">{{item}}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <input name="itens_custom" placeholder="Outros itens inclusos separados por vírgula">
+    <textarea name="nao_inclusos" placeholder="O que não está incluso, se houver">{{ proposta.nao_inclusos if proposta else '' }}</textarea>
+  </section>
+
+  {% if tipo=='pacote' %}
+  <section class="card form-section">
+    <h2>Roteiro por dia</h2>
+    <div id="days"></div>
+    <button type="button" onclick="addDay()">Adicionar dia</button>
+    <input type="hidden" name="roteiro_json" id="roteiro_json">
+  </section>
+  {% endif %}
+
+  <section class="card form-section">
+    <h2>Valores gerais e termos</h2>
+    <textarea name="bagagem" placeholder="Informações gerais de bagagem">{{ proposta.bagagem if proposta else '' }}</textarea>
+    <div class="cols">
+      <label>Valor total*<input required min="0" type="number" step="0.01" name="valor_total" value="{{ proposta.valor_total if proposta else '' }}"></label>
+      <label>Valor parcelado<input min="0" type="number" step="0.01" name="valor_parcelado" value="{{ proposta.valor_parcelado if proposta else '' }}"></label>
+      <label>Parcelas<input min="1" type="number" name="parcelas" value="{{ proposta.parcelas if proposta else '1' }}"></label>
+    </div>
+    <textarea rows="7" name="termos" placeholder="Termos e condições">{{ proposta.termos if proposta else cfg.termos_padrao }}</textarea>
+    <button class="primary">Salvar rascunho/proposta</button>
+  </section>
+</form>
+
+<script type="application/json" id="initialDaysData">{{ (proposta.roteiro_json if proposta else [])|tojson }}</script>
+<script type="application/json" id="initialTransportesData">{{ (proposta.transportes_lista if proposta else [])|tojson }}</script>
+<script type="application/json" id="initialBedsData">{{ (h.tipos_camas if h else [])|tojson }}</script>
+{% endblock %}

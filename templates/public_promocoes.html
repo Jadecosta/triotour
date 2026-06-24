@@ -1,0 +1,18 @@
+{% extends 'base_public.html' %}
+{% block content %}
+<main class="public-section public-listing">
+  <div class="public-section-head">
+    <div>
+      <span class="badge">Promocoes publicadas</span>
+      <h1>Pacotes disponiveis</h1>
+    </div>
+  </div>
+  <div class="packages-grid promotions-list">
+    {% for p in promocoes %}
+    {% include 'partials/promo_card.html' %}
+    {% else %}
+    <article class="empty-public">Nenhuma promocao publicada no momento.</article>
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,26 @@
+<article class="promo-card package-card">
+  <img src="{{ url_for('static', filename='uploads/promocoes/' ~ p.imagem) if p.imagem else url_for('static', filename='img/logo_triotour.png') }}" alt="{{ p.titulo }}">
+  <div class="promo-card-body card-content">
+    <span class="promo-kicker">{{ p.destino }}</span>
+    <h3>{{ p.titulo }}</h3>
+    {% if p.descricao_curta %}<p>{{ p.descricao_curta }}</p>{% endif %}
+    <div class="promo-meta">
+      {% if p.data_inicio %}<span>{{ p.data_inicio|br_date }}{% if p.data_fim %} a {{ p.data_fim|br_date }}{% endif %}</span>{% endif %}
+      {% if p.dias or p.noites %}<span>{{ p.dias or 0 }} dias / {{ p.noites or 0 }} noites</span>{% endif %}
+    </div>
+    {% if inclusos and inclusos.get(p.id) %}
+    <ul class="promo-includes">
+      {% for item in inclusos.get(p.id) %}<li>{{ item.nome }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    <div class="promo-price">
+      {% if p.preco_original %}<del>{{ p.preco_original|money }}</del>{% endif %}
+      <strong>{{ p.texto_preco or ((p.preco_promocional or p.preco_original)|money ~ ' por ' ~ (p.preco_por or 'pessoa')) }}</strong>
+      {% if p.parcelas and p.valor_parcela %}<small>{{ p.parcelas }}x de {{ p.valor_parcela|money }}</small>{% endif %}
+    </div>
+    <div class="promo-actions card-actions">
+      <a class="btn" href="{{ url_for('promocao_publica', id=p.id) }}">Ver detalhes</a>
+      <a class="btn primary" href="{{ whatsapp_link(p, cfg) }}" target="_blank" rel="noopener">{{ p.texto_botao or 'Quero reservar' }}</a>
+    </div>
+  </div>
+</article>

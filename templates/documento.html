@@ -1,1 +1,184 @@
-{% extends 'base.html' %}{% block content %}<div class="doc-actions"><a href="{{ url_for('edit_proposta', id=p.id) }}">Editar</a><button onclick="window.print()">Imprimir / Exportar PDF</button></div><article class="document"><header><div>{% if cfg.logo %}<img class="logo" src="{{cfg.logo}}">{% endif %}<h1>{{cfg.nome}}</h1><p>{{cfg.slogan}}</p></div><div><b>Emissão:</b> {{emissao.strftime('%d/%m/%Y')}}</div></header><h2>{{p.titulo}}</h2><section><h3>Cliente</h3><p><b>Nome:</b> {{p.cliente}} | <b>Telefone:</b> {{p.telefone or '-'}} | <b>E-mail:</b> {{p.email or '-'}}</p><p><b>Documento:</b> {{p.documento or '-'}}</p></section><section><h3>Dados da viagem</h3><p><b>Tipo:</b> {{p.tipo}} / {{p.subtipo}} · <b>Origem:</b> {{p.origem}} · <b>Destino:</b> {{p.destino}}</p><p><b>Período:</b> {{p.data_inicio|br_date}}{% if p.data_fim %} a {{p.data_fim|br_date}}{% endif %} · {{p.dias_noites or ''}}</p><p><b>Bagagem:</b> {{p.bagagem or '-'}}</p></section><section><h3>Transporte</h3><table><tr><th>Trecho</th><th>Data</th><th>Horário</th><th>Companhia/empresa</th><th>Identificação</th></tr>{% for k,t in p.transportes.items() %}<tr><td>{{k}}</td><td>{{t.data|br_date}}</td><td>{{t.horario}}</td><td>{{t.companhia}}</td><td>{{t.identificacao}}</td></tr>{% endfor %}</table></section>{% if p.hospedagem %}<section><h3>Hospedagem</h3><p><b>{{p.hospedagem.nome}}</b> · Check-in {{p.hospedagem.checkin|br_date}} · Check-out {{p.hospedagem.checkout|br_date}}</p><p>Quarto: {{p.hospedagem.quarto}} · Alimentação: {{p.hospedagem.alimentacao}}</p></section>{% endif %}{% if p.roteiro %}<section><h3>Roteiro detalhado</h3>{% for d in p.roteiro %}<div class="day"><h4>{{d.dia or ('Dia ' ~ d.ordem)}} — {{d.titulo}} <small>{{d.data|br_date}} {{d.horario}}</small></h4><p><b>{{d.local}}</b></p><p>{{d.descricao}}</p><p><em>{{d.observacoes}}</em></p></div>{% endfor %}</section>{% endif %}<section><h3>Incluso</h3><ul>{% for i in p.itens %}<li>{{i.nome}}</li>{% endfor %}</ul>{% if p.nao_inclusos %}<h3>Não incluso</h3><p>{{p.nao_inclusos}}</p>{% endif %}</section><section class="price"><h3>Investimento</h3><p><b>Total:</b> {{p.valor_total|money}} · <b>Parcelamento:</b> {{p.parcelas}}x de {{p.valor_parcelado|money}}</p></section><section><h3>Termos e condições</h3><p class="pre">{{p.termos}}</p></section><footer><b>Contato {{cfg.nome}}</b><br>{{cfg.telefone}} · WhatsApp {{cfg.whatsapp}} · {{cfg.email}} · {{cfg.instagram}}<br>{{cfg.endereco}}</footer></article>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+{% set pass = p.passageiros %}
+{% set total_passageiros = (pass.adultos or 0) + (pass.criancas or 0) + (pass.bebes or 0) %}
+<div class="doc-actions">
+  <a class="btn" href="{{ url_for('edit_proposta', id=p.id) }}">Editar</a>
+  <button onclick="window.print()">Imprimir / Exportar PDF</button>
+</div>
+
+<article class="document">
+  <header>
+    <div>
+      {% if cfg.logo %}<img class="logo" src="{{cfg.logo}}" alt="Logo {{cfg.nome}}">{% endif %}
+      <h1>{{cfg.nome}}</h1>
+      {% if cfg.slogan %}<p>{{cfg.slogan}}</p>{% endif %}
+    </div>
+    <div><b>Emissão:</b> {{emissao.strftime('%d/%m/%Y')}}</div>
+  </header>
+
+  <h2>{{p.titulo}}</h2>
+
+  <section>
+    <h3>Cliente</h3>
+    <p><b>Nome:</b> {{p.cliente}}</p>
+    <p>
+      {% if p.telefone %}<b>Telefone:</b> {{p.telefone}}{% endif %}
+      {% if p.email %} <b>E-mail:</b> {{p.email}}{% endif %}
+      {% if p.documento %} <b>Documento:</b> {{p.documento}}{% endif %}
+    </p>
+  </section>
+
+  <section>
+    <h3>Dados da viagem</h3>
+    <p>
+      <b>Tipo:</b> {{p.tipo}}{% if p.subtipo %} / {{p.subtipo}}{% endif %}
+      <b>Origem:</b> {{p.origem}}
+      <b>Destino:</b> {{p.destino}}
+    </p>
+    <p>
+      <b>Período:</b> {{p.data_inicio|br_date}}{% if p.data_fim %} a {{p.data_fim|br_date}}{% endif %}
+      {% if p.dias_noites %} · {{p.dias_noites}}{% endif %}
+    </p>
+    {% if p.bagagem %}<p><b>Bagagem:</b> {{p.bagagem}}</p>{% endif %}
+  </section>
+
+  {% if total_passageiros > 0 %}
+  <section>
+    <h3>Passageiros</h3>
+    <p>
+      <b>Adultos:</b> {{pass.adultos or 0}}
+      <b>Crianças:</b> {{pass.criancas or 0}}
+      <b>Bebês:</b> {{pass.bebes or 0}}
+      <b>Total:</b> {{total_passageiros}}
+    </p>
+    {% if pass.idades_criancas %}<p><b>Idades das crianças:</b> {{pass.idades_criancas}}</p>{% endif %}
+    {% if pass.idades_bebes %}<p><b>Idades dos bebês:</b> {{pass.idades_bebes}}</p>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if p.transportes_lista %}
+  <section>
+    <h3>Passagens/transportes</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Trecho</th><th>Passagem</th><th>Origem</th><th>Destino</th><th>Data</th>
+            <th>Saída</th><th>Chegada</th><th>Companhia/empresa</th><th>Nº/ID</th><th>Classe/ônibus</th><th>Bagagem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in p.transportes_lista %}
+          {% set companhia = t.companhia_personalizada if t.companhia == 'Outra' and t.companhia_personalizada else t.companhia %}
+          <tr>
+            <td>{{t.tipo_trecho}}</td>
+            <td>{{t.tipo_passagem}}</td>
+            <td>{{t.origem}}</td>
+            <td>{{t.destino}}</td>
+            <td>{{t.data|br_date}}</td>
+            <td>{{t.horario_saida}}</td>
+            <td>{{t.horario_chegada}}</td>
+            <td>{{companhia}}</td>
+            <td>{{t.identificacao}}</td>
+            <td>{{t.classe}}</td>
+            <td>{{t.bagagem}}</td>
+          </tr>
+          {% if t.observacoes %}
+          <tr><td colspan="11"><b>Observações:</b> {{t.observacoes}}</td></tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if p.hospedagem %}
+  {% set h = p.hospedagem %}
+  {% set acomodacao = h.acomodacao_personalizada if h.tipo_acomodacao == 'Outro' and h.acomodacao_personalizada else h.tipo_acomodacao or h.quarto %}
+  <section>
+    <h3>Hospedagem</h3>
+    <p>
+      {% if h.cidade %}<b>Cidade:</b> {{h.cidade}}{% endif %}
+      {% if h.nome %} <b>Hotel:</b> {{h.nome}}{% endif %}
+    </p>
+    <p>
+      {% if h.checkin %}<b>Check-in:</b> {{h.checkin|br_date}}{% endif %}
+      {% if h.checkout %} <b>Check-out:</b> {{h.checkout|br_date}}{% endif %}
+      {% if h.diarias is not none %} <b>Diárias:</b> {{h.diarias}}{% endif %}
+    </p>
+    <p>
+      {% if acomodacao %}<b>Acomodação:</b> {{acomodacao}}{% endif %}
+      {% if h.quartos %} <b>Quartos:</b> {{h.quartos}}{% endif %}
+      {% if h.camas %} <b>Camas:</b> {{h.camas}}{% endif %}
+      {% if h.pessoas %} <b>Pessoas:</b> {{h.pessoas}}{% endif %}
+    </p>
+    {% if h.tipos_camas %}
+    <p><b>Tipos de camas:</b>
+      {% for cama in h.tipos_camas %}{{cama.quantidade}}x {{cama.tipo}}{{ ", " if not loop.last }}{% endfor %}
+    </p>
+    {% endif %}
+    {% if h.itens_inclusos %}
+    <p><b>Itens inclusos:</b> {{ h.itens_inclusos|join(', ') }}{% if h.itens_outros %} · {{h.itens_outros}}{% endif %}</p>
+    {% endif %}
+    <p>
+      {% if h.nota is not none %}<b>Nota:</b> {{h.nota}}{% endif %}
+      {% if h.estrelas %} <b>Estrelas:</b> {{h.estrelas}}{% endif %}
+    </p>
+    {% if h.localizacao %}<p><b>Localização:</b> {{h.localizacao}}</p>{% endif %}
+    {% if h.mapa_link %}<p><b>Mapa:</b> <a href="{{h.mapa_link}}">{{h.mapa_link}}</a></p>{% endif %}
+    {% if h.valor_total or h.valor_parcelado %}
+    <p><b>Valor total:</b> {{h.valor_total|money}} · <b>Parcelamento:</b> {{h.parcelas}}x de {{h.valor_parcelado|money}}</p>
+    {% endif %}
+    {% if h.observacoes %}<p><b>Observações:</b> {{h.observacoes}}</p>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if p.roteiro %}
+  <section>
+    <h3>Roteiro detalhado</h3>
+    {% for d in p.roteiro %}
+    <div class="day">
+      <h4>{{d.dia or ('Dia ' ~ d.ordem)}}{% if d.titulo %} - {{d.titulo}}{% endif %} <small>{{d.data|br_date}} {{d.horario}}</small></h4>
+      {% if d.local %}<p><b>{{d.local}}</b></p>{% endif %}
+      {% if d.descricao %}<p>{{d.descricao}}</p>{% endif %}
+      {% if d.observacoes %}<p><em>{{d.observacoes}}</em></p>{% endif %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if p.itens or p.nao_inclusos %}
+  <section>
+    {% if p.itens %}
+    <h3>Incluso</h3>
+    <ul>{% for i in p.itens %}<li>{{i.nome}}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if p.nao_inclusos %}
+    <h3>Não incluso</h3>
+    <p>{{p.nao_inclusos}}</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="price">
+    <h3>Investimento</h3>
+    <p><b>Total:</b> {{p.valor_total|money}} · <b>Parcelamento:</b> {{p.parcelas}}x de {{p.valor_parcelado|money}}</p>
+  </section>
+
+  {% if p.termos %}
+  <section>
+    <h3>Termos e condições</h3>
+    <p class="pre">{{p.termos}}</p>
+  </section>
+  {% endif %}
+
+  <footer>
+    <b>Contato {{cfg.nome}}</b><br>
+    {{cfg.telefone}}{% if cfg.whatsapp %} · WhatsApp {{cfg.whatsapp}}{% endif %}
+    {% if cfg.email %} · {{cfg.email}}{% endif %}{% if cfg.instagram %} · {{cfg.instagram}}{% endif %}
+    {% if cfg.endereco %}<br>{{cfg.endereco}}{% endif %}
+  </footer>
+</article>
+{% endblock %}

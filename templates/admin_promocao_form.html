@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set selected_inclusos = inclusos|map(attribute='nome')|list %}
+{% set selected_nao = nao_inclusos|map(attribute='nome')|list %}
+<section class="section-heading">
+  <div>
+    <span class="badge">Promocoes</span>
+    <h1>{{ 'Editar promocao' if promo else 'Nova promocao' }}</h1>
+  </div>
+  <a class="btn" href="{{ url_for('admin_promocoes') }}">Voltar</a>
+</section>
+
+<form class="form proposal-form" method="post" enctype="multipart/form-data" id="promoForm">
+  <section class="card form-section">
+    <h2>Informacoes principais</h2>
+    <div class="cols">
+      <label>Titulo*<input required name="titulo" value="{{ promo.titulo if promo else '' }}"></label>
+      <label>Destino*<input required name="destino" value="{{ promo.destino if promo else '' }}"></label>
+      <label>Cidade de origem<input name="origem" value="{{ promo.origem if promo else '' }}"></label>
+    </div>
+    <div class="cols">
+      <label>Categoria<input name="categoria" value="{{ promo.categoria if promo else '' }}"></label>
+      <label>Status<select name="status">{% for s in ['rascunho','publicada','desativada','expirada'] %}<option value="{{ s }}" {% if promo and promo.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
+      <label>Ordem<input type="number" name="ordem" value="{{ promo.ordem if promo else 0 }}"></label>
+    </div>
+    <textarea name="descricao_curta" placeholder="Descricao curta">{{ promo.descricao_curta if promo else '' }}</textarea>
+    <textarea name="descricao_completa" placeholder="Descricao completa">{{ promo.descricao_completa if promo else '' }}</textarea>
+    <div class="cols">
+      <label>Data de inicio<input type="date" name="data_inicio" value="{{ promo.data_inicio if promo else '' }}"></label>
+      <label>Data de fim<input type="date" name="data_fim" value="{{ promo.data_fim if promo else '' }}"></label>
+      <label>Validade<input type="date" name="validade" value="{{ promo.validade if promo else '' }}"></label>
+    </div>
+    <div class="cols">
+      <label>Dias<input min="0" type="number" name="dias" value="{{ promo.dias if promo else 0 }}"></label>
+      <label>Noites<input min="0" type="number" name="noites" value="{{ promo.noites if promo else 0 }}"></label>
+      <label>Vagas<input min="0" type="number" name="vagas" value="{{ promo.vagas if promo else 0 }}"></label>
+      <label class="checkbox-option"><input type="checkbox" name="destaque" value="1" {% if promo and promo.destaque %}checked{% endif %}><span class="checkbox-box"></span><span class="checkbox-label">Promocao em destaque</span></label>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <h2>Precos</h2>
+    <div class="cols">
+      <label>Preco original<input min="0" step="0.01" type="number" name="preco_original" id="preco_original" value="{{ promo.preco_original if promo else '' }}"></label>
+      <label>Preco promocional<input min="0" step="0.01" type="number" name="preco_promocional" id="preco_promocional" value="{{ promo.preco_promocional if promo else '' }}"></label>
+      <label>Parcelas<input min="1" type="number" name="parcelas" id="promo_parcelas" value="{{ promo.parcelas if promo else 1 }}"></label>
+      <label>Valor da parcela<input min="0" step="0.01" type="number" name="valor_parcela" id="valor_parcela" value="{{ promo.valor_parcela if promo else '' }}"></label>
+    </div>
+    <div class="cols">
+      <label>Texto adicional do preco<input name="texto_preco" value="{{ promo.texto_preco if promo else '' }}" placeholder="A partir de R$ 1.299,00 por pessoa"></label>
+      <label>Preco por<select name="preco_por"><option value="pessoa" {% if promo and promo.preco_por == 'pessoa' %}selected{% endif %}>pessoa</option><option value="pacote" {% if promo and promo.preco_por == 'pacote' %}selected{% endif %}>pacote</option></select></label>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <h2>Fotos</h2>
+    <div class="cols">
+      <label>Imagem principal<input type="file" name="imagem_principal" accept=".jpg,.jpeg,.png,.webp" data-preview="principalPreview"></label>
+      <label>Imagens adicionais<input type="file" name="imagens" accept=".jpg,.jpeg,.png,.webp" multiple data-preview="galeriaPreview"></label>
+    </div>
+    <div class="upload-preview" id="principalPreview"></div>
+    <div class="upload-preview" id="galeriaPreview"></div>
+    {% if imagens %}
+    <div class="image-admin-grid">
+      {% for img in imagens %}
+      <label class="image-admin-item">
+        <img src="{{ url_for('static', filename='uploads/promocoes/' ~ img.arquivo) }}" alt="{{ img.nome_original or promo.titulo }}">
+        <span><input type="radio" name="imagem_principal_id" value="{{ img.id }}" {% if img.principal %}checked{% endif %}> Principal</span>
+        <span><input type="checkbox" name="delete_images" value="{{ img.id }}"> Excluir</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="card form-section">
+    <h2>O que esta incluso</h2>
+    <div class="checks">
+      {% for item in opcoes_inclusos %}
+      <label class="checkbox-option"><input type="checkbox" name="inclusos" value="{{ item }}" {% if item in selected_inclusos %}checked{% endif %}><span class="checkbox-box"></span><span class="checkbox-label">{{ item }}</span></label>
+      {% endfor %}
+    </div>
+    <textarea name="inclusos_custom" placeholder="Itens personalizados, um por linha"></textarea>
+  </section>
+
+  <section class="card form-section">
+    <h2>O que nao esta incluso</h2>
+    <div class="checks">
+      {% for item in opcoes_nao_inclusos %}
+      <label class="checkbox-option"><input type="checkbox" name="nao_inclusos" value="{{ item }}" {% if item in selected_nao %}checked{% endif %}><span class="checkbox-box"></span><span class="checkbox-label">{{ item }}</span></label>
+      {% endfor %}
+    </div>
+    <textarea name="nao_inclusos_custom" placeholder="Itens personalizados, um por linha"></textarea>
+  </section>
+
+  <section class="card form-section">
+    <h2>Informacoes complementares</h2>
+    <div class="cols">
+      <label>Hospedagem<input name="hospedagem" value="{{ promo.hospedagem if promo else '' }}"></label>
+      <label>Companhia/empresa<input name="transportadora" value="{{ promo.transportadora if promo else '' }}"></label>
+      <label>Tipo de transporte<input name="tipo_transporte" value="{{ promo.tipo_transporte if promo else '' }}"></label>
+    </div>
+    <div class="cols">
+      <label>Horarios<input name="horarios" value="{{ promo.horarios if promo else '' }}"></label>
+      <label>Ponto de embarque<input name="ponto_embarque" value="{{ promo.ponto_embarque if promo else '' }}"></label>
+      <label>Bagagem<input name="bagagem" value="{{ promo.bagagem if promo else '' }}"></label>
+    </div>
+    <textarea name="documentacao" placeholder="Documentacao necessaria">{{ promo.documentacao if promo else '' }}</textarea>
+    <textarea name="politica_criancas" placeholder="Politica para criancas">{{ promo.politica_criancas if promo else '' }}</textarea>
+    <textarea name="politica_cancelamento" placeholder="Politica de cancelamento">{{ promo.politica_cancelamento if promo else '' }}</textarea>
+    <textarea name="observacoes" placeholder="Observacoes">{{ promo.observacoes if promo else '' }}</textarea>
+    <textarea name="termos" placeholder="Termos da promocao">{{ promo.termos if promo else '' }}</textarea>
+    <div class="cols">
+      <label>Link externo<input type="url" name="link_externo" value="{{ promo.link_externo if promo else '' }}"></label>
+      <label>Link do WhatsApp<input type="url" name="link_whatsapp" value="{{ promo.link_whatsapp if promo else '' }}"></label>
+      <label>Texto do botao<input name="texto_botao" value="{{ promo.texto_botao if promo else 'Quero reservar' }}"></label>
+    </div>
+    <button class="primary">Salvar promocao</button>
+  </section>
+</form>
+{% endblock %}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Entrar - Triotour</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <form class="login-card" method="post">
+      <img src="{{ url_for('static', filename='img/logo_inicio.png') }}" alt="Triotour">
+      <h1>Entrar</h1>
+      {% for c,m in get_flashed_messages(with_categories=true) %}
+      <div class="alert {{c}}">{{m}}</div>
+      {% endfor %}
+      <label>E-mail ou usuario<input required name="identificador" autocomplete="username"></label>
+      <label>Senha<input required type="password" name="senha" autocomplete="current-password"></label>
+      <button class="primary" type="submit">Entrar</button>
+      <a class="btn" href="{{ url_for('index') }}">Voltar ao site publico</a>
+    </form>
+  </main>
+</body>
+</html>

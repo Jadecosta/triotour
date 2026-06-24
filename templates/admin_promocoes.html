@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="section-heading">
+  <div>
+    <span class="badge">Administracao</span>
+    <h1>Promocoes</h1>
+  </div>
+  <a class="btn primary" href="{{ url_for('nova_promocao') }}">Nova promocao</a>
+</section>
+
+<form class="card search filters" method="get">
+  <input name="q" placeholder="Titulo" value="{{ args.q }}">
+  <input name="destino" placeholder="Destino" value="{{ args.destino }}">
+  <select name="status">
+    <option value="">Status</option>
+    {% for s in ['rascunho','publicada','desativada','expirada'] %}
+    <option value="{{ s }}" {% if args.status == s %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <input name="categoria" placeholder="Categoria" value="{{ args.categoria }}">
+  <input type="date" name="data" value="{{ args.data }}">
+  <select name="destaque">
+    <option value="">Destaque</option>
+    <option value="1" {% if args.destaque == '1' %}selected{% endif %}>Sim</option>
+    <option value="0" {% if args.destaque == '0' %}selected{% endif %}>Nao</option>
+  </select>
+  <button>Filtrar</button>
+</form>
+
+<div class="packages-grid admin-packages-grid">
+  {% for p in promocoes %}
+  <article class="card package-card admin-promo-card">
+    <img src="{{ url_for('static', filename='uploads/promocoes/' ~ p.imagem) if p.imagem else url_for('static', filename='img/logo_triotour.png') }}" alt="{{ p.titulo }}">
+    <div class="card-content">
+      <div class="admin-card-head">
+        <span class="status-pill status-{{ p.status }}">{{ p.status }}</span>
+        {% if p.destaque %}<span class="badge">Destaque</span>{% endif %}
+      </div>
+      <h3>{{ p.titulo }}</h3>
+      <p><b>Destino:</b> {{ p.destino }}</p>
+      <p><b>Preco:</b> {{ (p.preco_promocional or p.preco_original)|money }}</p>
+      {% if p.validade %}<p><b>Validade:</b> {{ p.validade|br_date }}</p>{% endif %}
+      <div class="inline-actions card-actions">
+        <a class="btn" href="{{ url_for('visualizar_promocao_admin', id=p.id) }}" target="_blank">Visualizar</a>
+        <a class="btn" href="{{ url_for('editar_promocao', id=p.id) }}">Editar</a>
+        <form method="post" action="{{ url_for('status_promocao', id=p.id) }}"><input type="hidden" name="status" value="{{ 'desativada' if p.status == 'publicada' else 'publicada' }}"><button>{{ 'Desativar' if p.status == 'publicada' else 'Publicar' }}</button></form>
+        <form method="post" action="{{ url_for('duplicar_promocao', id=p.id) }}"><button>Duplicar</button></form>
+        <form method="post" action="{{ url_for('excluir_promocao', id=p.id) }}" onsubmit="return confirm('Excluir definitivamente esta promocao?')"><button class="danger-btn">Excluir</button></form>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <p>Nenhuma promocao encontrada.</p>
+  {% endfor %}
+</div>
+{% endblock %}

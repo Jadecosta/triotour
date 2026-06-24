@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Usuarios</h1>
+<form class="card form" method="post">
+  <h2>Novo usuario</h2>
+  <div class="cols">
+    <input required name="nome" placeholder="Nome">
+    <input required type="email" name="email" placeholder="E-mail">
+    <input name="usuario" placeholder="Usuario">
+  </div>
+  <div class="cols">
+    <input required type="password" name="senha" placeholder="Senha">
+    <select name="perfil"><option value="atendente">atendente</option><option value="administrador">administrador</option></select>
+    <label class="checkbox-option"><input type="checkbox" name="ativo" value="1" checked><span class="checkbox-box"></span><span class="checkbox-label">Ativo</span></label>
+  </div>
+  <button class="primary">Criar usuario</button>
+</form>
+<div class="table-wrap card">
+  <table>
+    <thead><tr><th>Nome</th><th>E-mail</th><th>Usuario</th><th>Perfil</th><th>Ativo</th></tr></thead>
+    <tbody>{% for u in usuarios %}<tr><td>{{ u.nome }}</td><td>{{ u.email }}</td><td>{{ u.usuario }}</td><td>{{ u.perfil }}</td><td>{{ 'Sim' if u.ativo else 'Nao' }}</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endblock %}
